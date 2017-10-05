@@ -7,20 +7,18 @@ vent = []
 zplus = []
 norvent = []
 sdv = []
-
+outlier = [0] * 101
+temp_norvent = []
 
 with open('units.txt', 'r') as f:
     for line in f:
         data = line.split()
         num.append(int(data[0]))
         z.append(float(data[1]))
-        # z.append(abs(float(data[1])))
 with open('flows.txt', 'r') as f2:
     for line in f2:
         data = line.split()
         vent.append(float(data[0]))
-        #vent.append((float(data[1])/1000) - (0.85 / 30895))
-        #vent.append((float(data[2])))
 l = len(z)
 mi = min(z)
 ma = max(z)
@@ -36,6 +34,7 @@ for i in range(0, 101):
     if len(venti) == 0:
         ave = 0
         sd = 0
+        outlier[i] = 1
     else:
         if len(venti) == 1:
             sd = 0
@@ -43,34 +42,30 @@ for i in range(0, 101):
             sd = statistics.stdev(venti)
         ave = statistics.mean(venti)
     norvent.append(ave)
-    #print(norvent)
     sdv.append(sd)
-temp_norvent = [x for x in norvent if x > 0]
+    if outlier[i] != 1:
+        temp_norvent.append(ave)
+
 med = statistics.mean(temp_norvent)
-new_norvent = [x / med for x in norvent]
-new_sdv = [x / med for x in sdv]
-#aver=3.59190
+new_norvent = [x / abs(med) for x in norvent]
+new_sdv = [x / abs(med) for x in sdv]
 print(med)
 print(new_norvent)
 
-#ones = [med] * 100
-ones = [1] * 100
+min_lim = min([x/abs(med) for x in temp_norvent]) - 0.1
+max_lim = max([x/abs(med) for x in temp_norvent]) + 0.1
+
+for i in range(0, len(outlier)):
+    if outlier[i] == 1:
+        new_norvent[i] -= abs(min_lim) + 0.1
+
+ones = [(med/abs(med)) * 1] * 100
 pl.hold('on')
-#pl.plot(norvent, range(0,101),'o')
-pl.xlim([0.6, 1.3])
-#pl.xlim([0.2, 0.3])
+pl.xlim([min_lim, max_lim])
 pl.plot(ones, range(1, 101), '--')
 pl.errorbar(new_norvent, range(0, 101), xerr=new_sdv, fmt='o')
-#pl.errorbar(norvent, range(0, 101), xerr=sdv, fmt='o')
-#pl.plot(vent, zplus,'.')
 pl.xlabel('normal flow (ml/s)')
-#pl.xlabel('Unit Pressure')
-
-
-#pl.xlabel('Unit volume')
 pl.ylabel('lung height (%)')
-#pl.text(-6.5, 90,  med)
-#pl.plot(vent,zplus,'.')
 print(med, min(new_norvent), max(new_norvent), sum(new_norvent), sum(vent))
 pl.show()
 
